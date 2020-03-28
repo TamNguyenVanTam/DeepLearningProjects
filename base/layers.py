@@ -155,6 +155,50 @@ class Conv1D(Layer):
 		outputs = self.act(x)
 		return outputs
 
+class MaxPooling2D(Layer):
+	"""
+	Maxpooling2D
+	"""
+	def __init__(self, ksize, strides, padding, **kwargs):
+		super(MaxPooling2D, self).__init__(**kwargs)
+
+		self.ksize = ksize
+		self.strides = strides
+		self.padding = padding
+
+	def _call(self, inputs):
+		"""
+		Perform maxpoling2D operation 
+		"""
+		outputs = tf.nn.max_pool2d(inputs, [1, self.ksize, self.ksize, 1],
+									[1, self.strides, self.strides, 1], 
+									self.padding)
+		return outputs
+
+class MaxPooling1D(Layer):
+	"""
+	Maxpooling 1D
+	"""
+	def __init__(self, ksize, strides, padding, **kwargs):
+		super(MaxPooling1D, self).__init__(**kwargs)
+
+		self.ksize = ksize
+		self.strides = strides
+		self.padding = padding
+	
+	def _call(self, inputs):
+		"""
+		Perform maxpooling 1D operation
+		"""
+		x = tf.expand_dims(inputs, axis=-1)
+
+		outputs = tf.nn.max_pool2d(x, [1, self.ksize, 1, 1],
+									[1, self.strides, 1, 1],
+									self.padding)
+		outputs = tf.squeeze(outputs, axis=-1)
+
+		return outputs
+
 class BiLSTM(Layer):
 	"""
 	BiLSTM layer
