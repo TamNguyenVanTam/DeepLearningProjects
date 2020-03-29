@@ -6,7 +6,7 @@ This file implements some initial methods
 import tensorflow as tf
 import numpy as np
 
-def uniform(shape, scale=0.05, name=None):
+def uniform(shape, scale=0.05, name=None, trainable=True):
 	"""
 	Create a random variable follow by uniform distribution
 	Params:
@@ -23,7 +23,7 @@ def uniform(shape, scale=0.05, name=None):
 							maxval=scale,dtype=tf.float32,
 							seed=1)
 
-	return tf.Varible(kernel, name=name)
+	return tf.Variable(kernel, trainable=trainable, name=name)
 
 def glorot(shape, name=None):
 	"""

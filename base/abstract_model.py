@@ -46,8 +46,8 @@ class Model(object):
 		#Build sequential layer model
 		self.activations.append(self.inputs)
 		for layer in self.layers:
-			print(layer)
 			hidden = layer(self.activations[-1])
+			print(hidden)
 			self.activations.append(hidden)
 		print("Modeling sucessful")
 		self.outputs = self.activations[-1]

@@ -93,8 +93,9 @@ class Conv2D(Layer):
 		x = tf.reshape(x, _shape)
 
 		# Perform convolution operation
-		x = tf.nn.conv2d(x, self.vars["weights"], self.strides, self.padding)
-
+		x = tf.nn.conv2d(x, self.vars["weights"],
+						[1, self.strides, self.strides, 1], 
+						self.padding)
 		if self.bias:
 			x += self.vars["bias"]
 
@@ -148,7 +149,7 @@ class Conv1D(Layer):
 		x = tf.reshape(x, _shape)
 
 		x = tf.nn.conv1d(x, self.vars["weights"],
-						self.strides, self.padding)
+						[1, self.strides, 1], self.padding)
 		if self.bias:
 			x += self.vars["bias"]
 
@@ -313,6 +314,54 @@ class Flatten(Layer):
 		outputs = tf.reshape(inputs, (-1, self.num_dims))
 		return outputs
 
+class CenterLoss(Layer):
+	"""
+	Perform center loss
+	"""
+	def __init__(self, num_classes, num_feas, learning_rate, **kwargs):
+		super(CenterLoss, self).__init__(**kwargs)		
+		
+		self.num_classes = num_classes
+		self.num_feas = num_feas
+		self.learning_rate = learning_rate
+
+		# Declare variables
+		with tf.variable_scope("{}_vars".format(self.name)):
+			self.vars["center"] = uniform(
+										shape=[self.num_classes, self.num_feas], 
+										scale=0.05, name=None, trainable=False
+									)	
+
+	def _call(self, inputs):
+		"""
+		Perform center loss layer
+
+		Params:
+			inputs: Tensor object
+				Embedding features:	N_Classes x N_Embedding
+			labels: Tensor object
+				Labels of this batchs: N_Samples x N x Classes 
+		Returns:
+			center loss optimizer
+		"""
+		embeded_preds = inputs[0]
+		labels = inputs[1]
+
+		_labels = tf.cast(labels, tf.float32)
+
+		embeded_labels = tf.matmul(_labels, self.vars["center"])
+
+		diff = embeded_labels - embeded_preds
+
+		_labels = tf.transpose(_labels)
+		grad = tf.matmul(_labels, diff)
+
+		updated_center = self.vars["center"] - self.learning_rate * grad
+		
+		center_loss_opt = tf.assign(self.vars["center"], updated_center)
+
+		return center_loss_opt
+
 class GraphConv(Layer):
 	"""Perform graph convolution layer"""
 	def __init__(self, input_dim, output_dim, adj_matrics, num_nodes,
@@ -398,9 +447,12 @@ class GraphConv(Layer):
 		if len(x) > 1:
 			outputs = tf.concat(gcn_step_feas, axis=1)
 		else:
-			outputs = tf.reshape(gcn_step_feas, (-1, self.num_nodes, self.output_dim))
-
+			outputs = tf.reshape(gcn_step_feas,
+								(-1, self.num_nodes, self.output_dim))
 		if self.bias:
 			outputs += self.vars["bias"]
 
 		return outputs, self.vars["weights_0"]
+
+
+
