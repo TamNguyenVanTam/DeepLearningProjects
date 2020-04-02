@@ -285,10 +285,9 @@ class LSTM(Layer):
 		x = inputs[0]
 		return_sequences = inputs[1]
 
-
-		if type(inputs) is not list:
+		if type(x) is not list:
 			x = tf.unstack(x, self.num_steps, 1)
-
+		
 		outputs, _ = rnn.static_rnn(self.vars["lstm_cell"], x, dtype="float32")
 		
 		if not return_sequences:

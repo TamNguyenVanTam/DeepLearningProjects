@@ -2,7 +2,7 @@
 Authors: TamNV
 This file implements abstract model
 """
-
+import os
 import tensorflow as tf
 
 class Model(object):
@@ -34,26 +34,26 @@ class Model(object):
 		self.optimizer = None
 		self.opt_op = None
 
-	def _build(self):
+	def _build(self, model_configs):
 		raise NotImplementedError
 
-	def build(self):
+	def build(self, model_configs):
 		"""
 		Wrapper for _build
 		"""
 		with tf.variable_scope(self.name):
-			self._build()
+			self._build(model_configs)
 		#Build sequential layer model
 		self.activations.append(self.inputs)
 		for layer in self.layers:
-			print(layer)
 			hidden = layer(self.activations[-1])
 			self.activations.append(hidden)
 		print("Modeling sucessful")
 		self.outputs = self.activations[-1]
 
 		#Store model variables for easy access
-		variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope=self.name)
+		variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
+													scope=self.name)
 		self.vars = {var.name : var for var in variables}
 		self._loss()
 		self._accuracy()
@@ -68,17 +68,18 @@ class Model(object):
 	def _accuracy(self):
 		raise NotImplementedError
 
-	def save(self, sess=None):
+	def save(self, save_path, sess=None):
 		if not sess:
 			raise AttributeError("Tensorflow session not provided.")
 		saver = tf.train.Saver(self.vars)
-		save_path = saver.save(sess, "/data2/users/tamnv/checkpoints/{}.ckpt".format(self.name))
+		save_path = os.path.join(save_path, "{}.ckpt".format(self.name))
+		save_path = saver.save(sess, save_path)
 		print("Model Saved in file {}".format(save_path))
 
-	def load(self, sess=None):
+	def load(self, save_path, sess=None):
 		if not sess:
 			raise AttributeError("Tensorflow session not provided.")
 		saver = tf.train.Saver(self.vars)
-		save_path = "/data2/users/tamnv/checkpoints/{}.ckpt".format(self.name)
+		save_path = os.path.join(save_path, "{}.ckpt".format(self.name))
 		saver.restore(sess, save_path)
 		print("Model restored from file: {}".format(save_path))

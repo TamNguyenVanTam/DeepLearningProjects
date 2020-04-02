@@ -48,3 +48,51 @@ def get_center_loss(embedded_features, labels, centers):
 	loss  = tf.nn.l2_loss(embedded_features - _embedded_features,
 							name="center_loss")
 	return loss
+
+def get_rmse_loss(labels, preds):
+	"""
+	Caculate RMSE loss
+	
+	Params:
+		labels: Tensor Object
+			Ground truth
+		preds: Tensor Object
+			Traffic Velocity Prediction 
+	Returns:
+		Root Mean Square Loss
+	"""
+	diff = labels - preds
+	diff = tf.reduce_mean(diff ** 2)
+	return tf.math.sqrt(diff)
+
+def get_mape(labels, preds):
+	"""
+	Caculate MAPE
+
+	Params:
+		labels: Tensor Object
+			Ground truth
+		preds: Tensor Object
+			Labels
+	Returns
+		Mean Absolute Percentage Error(MAPE)
+	"""
+	diff = labels - preds
+	diff = tf.math.abs(diff / (labels + 1e-8))
+	return 100 * tf.reduce_mean(diff)
+
+def get_mae(labels, preds):
+	"""
+	Caculate MAE
+
+	Params:
+		labels: Tensor Object
+			Ground truth
+		preds: Tensor Object
+			Labels
+	Returns:
+		Mean absolute error
+	"""
+	diff = labels - preds
+	diff = tf.math.abs(diff)
+	return tf.reduce_mean(diff)
