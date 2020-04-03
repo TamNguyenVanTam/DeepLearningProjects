@@ -104,3 +104,5 @@ def get_seattle_dataset(data_dir):
 											pred_len=1)
 	return adj_matrix, train_x, train_y,
 			valid_x, valid_y, test_x, test_y
+
+

@@ -91,7 +91,7 @@ class LSTM1(Model):
 
 	def _loss(self):
 		"""
-		Define the loss function use for this project
+		Define the loss function
 		
 		Params:
 			None
