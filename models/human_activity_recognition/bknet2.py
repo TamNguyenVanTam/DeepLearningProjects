@@ -128,6 +128,9 @@ class BKNet2(Model):
 		self.layers.append(MaxPooling1D(ksize=2,
 										strides=2,
 										padding="VALID"))
+		
+		self.layers.append(Flatten(num_dims=int(self.num_time_steps/4) * 128))
+
 
 		self.layers.append(Dense(input_dim=int(self.num_time_steps/4) * 128,
 								output_dim=512,

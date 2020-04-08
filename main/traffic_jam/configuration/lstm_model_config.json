@@ -1,0 +1,6 @@
+{
+	"num_secs":323,
+	"num_in_time_steps":10,
+	"num_out_time_steps":1,
+	"num_hops":5
+}

@@ -48,13 +48,11 @@ class Model(object):
 		for layer in self.layers:
 			hidden = layer(self.activations[-1])
 			self.activations.append(hidden)
-		print("Modeling sucessful")
+		
+		print("Modeling sucessfully")
 		self.outputs = self.activations[-1]
 
 		#Store model variables for easy access
-		variables = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
-													scope=self.name)
-		self.vars = {var.name : var for var in variables}
 		self._loss()
 		self._accuracy()
 		self.opt_op = self.optimizer.minimize(self.loss)
@@ -71,7 +69,7 @@ class Model(object):
 	def save(self, save_path, sess=None):
 		if not sess:
 			raise AttributeError("Tensorflow session not provided.")
-		saver = tf.train.Saver(self.vars)
+		saver = tf.train.Saver()
 		save_path = os.path.join(save_path, "{}.ckpt".format(self.name))
 		save_path = saver.save(sess, save_path)
 		print("Model Saved in file {}".format(save_path))
@@ -79,7 +77,7 @@ class Model(object):
 	def load(self, save_path, sess=None):
 		if not sess:
 			raise AttributeError("Tensorflow session not provided.")
-		saver = tf.train.Saver(self.vars)
+		saver = tf.train.Saver()
 		save_path = os.path.join(save_path, "{}.ckpt".format(self.name))
 		saver.restore(sess, save_path)
 		print("Model restored from file: {}".format(save_path))

@@ -1,0 +1,9 @@
+{
+	"batch_size": 2,
+	"num_epochs": 10,
+	"learning_rate": 1e-3,
+	"dropout": 0.0,
+	"decay_factor": 0.0005,
+	"checkpoint": "../../checkpoint/traffic_jam",
+	"data_dir": "../../data/traffic_jam"
+}

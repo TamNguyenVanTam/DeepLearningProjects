@@ -40,7 +40,7 @@ class Dense(Layer):
     def _call(self, inputs):
         x = inputs
         # Dropout
-        x = dropout(x, 1-self.dropout, self.num_features_nonzero, self.sparse_inputs)
+        # x = dropout(x, 1-self.dropout, self.num_features_nonzero, self.sparse_inputs)
         #Transform
         x = tf.reshape(x, (-1, self.input_dim))
 
@@ -89,7 +89,7 @@ class Conv2D(Layer):
 		# Perform dropout
 		_shape = tf.shape(inputs)
 		x = inputs
-		x = dropout(x, 1-self.dropout, self.num_features_nonzero, False)
+		# x = dropout(x, 1-self.dropout, self.num_features_nonzero, False)
 		x = tf.reshape(x, _shape)
 
 		# Perform convolution operation
@@ -143,8 +143,8 @@ class Conv1D(Layer):
 
 		x = inputs
 
-		x = dropout(x, 1-self.dropout,
-					self.num_features_nonzero, False)
+		# x = dropout(x, 1-self.dropout,
+					# self.num_features_nonzero, False)
 
 		x = tf.reshape(x, _shape)
 
@@ -230,9 +230,9 @@ class BiLSTM(Layer):
 		"""
 		x = inputs
 		# Dropout
-		x = dropout(x, 1-self.dropout, self.input_shape, False)
+		# x = dropout(x, 1-self.dropout, self.input_shape, False)
 		# BiLSTM layers
-		x = tf.reshape(x, (-1, self.num_steps, self.input_shape))
+		# x = tf.reshape(x, (-1, self.num_steps, self.input_shape))
 
 		outputs, _ = tf.nn.bidirectional_dynamic_rnn(self.vars["forward_lstm"],
 											self.vars["backward_lstm"],
@@ -244,7 +244,8 @@ class BiLSTM(Layer):
 
 class LSTM(Layer):
 	def __init__(self, num_units, input_shape,
-				num_steps, dropout, **kwargs):
+				num_steps, dropout, return_sequences,
+				**kwargs):
 		"""
 		Initialize method
 
@@ -264,6 +265,7 @@ class LSTM(Layer):
 		self.num_units = num_units
 		self.num_steps = num_steps
 		self.dropout = dropout
+		self.return_sequences = return_sequences
 
 		with tf.variable_scope("{}_vars".format(self.name)):
 			self.vars["lstm_cell"] = rnn.BasicLSTMCell(self.num_units, 1.0)
@@ -282,15 +284,14 @@ class LSTM(Layer):
 			outputs: Tensor object
 		"""
 
-		x = inputs[0]
-		return_sequences = inputs[1]
-
+		x = inputs
+		
 		if type(x) is not list:
 			x = tf.unstack(x, self.num_steps, 1)
 		
 		outputs, _ = rnn.static_rnn(self.vars["lstm_cell"], x, dtype="float32")
 		
-		if not return_sequences:
+		if not self.return_sequences:
 			outputs = outputs[-1]
 
 		return outputs
@@ -360,7 +361,8 @@ class CenterLoss(Layer):
 		_labels = tf.transpose(_labels)
 		grad = tf.matmul(_labels, diff)
 
-		center_counts = tf.reduce_sum(_labels, axis=1, keepdims=True)
+		center_counts = tf.reduce_sum(_labels, axis=1, keepdims=True) + 1.0
+		
 		grad /= center_counts
 
 		updated_center = self.vars["center"] - self.learning_rate * grad
@@ -369,96 +371,60 @@ class CenterLoss(Layer):
 
 		return center_loss_opt
 
-
 class GraphConv(Layer):
 	"""Perform graph convolution layer"""
-	def __init__(self, input_dim, output_dim, adj_matrics, num_nodes,
-				dropout=0.0, act=tf.nn.relu, bias=False, **kwargs):
+	def __init__(self, num_secs, num_steps, filters, **kwargs):
 		"""
-		Initialize method:
+		Initialize method
 
 		Params:
-			input_dim: Integer
-				The number of feature dimensions in inputs
-			output_dim: Integer
-				The number of feature dimensions in outputs
-			adj_matrics: A list
-				maps consists of k-hop maps
-			dropout: Float
-				Dropout factor
-			act: Activation function
+			num_secs: integer
+				the number of input sections
+			filters:  list
+				reception fields
+		Returns:
+			None
 		"""
 		super(GraphConv, self).__init__(**kwargs)
 
-		self.dropout = dropout
-		self.act = act
-		self.input_dim = input_dim
-		self.output_dim = output_dim
-		self.bias = bias
-		self.adj_mas =adj_matrics
-		self.num_nodes = num_nodes
+		self.num_secs = num_secs
+		self.num_steps = num_steps
+		self.filters = filters
 
 		with tf.variable_scope("{}_vars".format(self.name)):
-			for i in range(len(self.adj_mas)):
-				self.vars["weights_{}".format(i)] = glorot([input_dim, output_dim],
-															name = "weights_{}".format(i))
-
-			if self.bias:
-				self.vars["bias"] = zeros([output_dim], name='bias')
-		
+			for i in range(len(self.filters)):
+				self.vars["weights_{}".format(i)] = glorot([self.num_secs, num_secs],
+														name="weights_{}".format(i))
 		if self.logging:
 			self._log_vars()
 
-	def _call(self, inputs, is_time_series=True, num_times=2):
+	def _call(self, inputs):
 		"""
 		Implements call method
-	
+
 		Params:
-			inputs: Tensor Object
-				Inputs either Time series format or Instance class
-			is_time_series: Boolean 
-				Check kind of data
+			inputs: tensor object
+				Batchsize x num_steps x num_secs
+		Returns:
+			embedded features
+				Batchsize x num_steps x num_secs 
 		"""
-		if is_time_series:
-			x = tf.unstack(inputs, num_times, 1)
-		else:
-			x = [inputs]
-		#Perform dropout
-		x = [dropout(step_features, 1-self.dropout, self.input_dim) 
-				for step_features in x]
+		x = tf.unstack(inputs, self.num_steps, 1)
 
-		#Perform gaph convolution
-		gcn_step_feas = []
+		spatial_feas = []
+		for feas in x:
+			gcn_feas = feas
+			gcn_feas = 0
+			for i in range(len(self.filters)):
+				masked_filer = tf.matmul(
+									self.vars["weights_{}".format(i)], 
+									self.filters[i]
+								)
+				neiborhood_feas = tf.matmul(feas, masked_filer)
+				neiborhood_feas = tf.nn.tanh(neiborhood_feas)
 
-		for step_features in x:
-			abs_feas = []
-			for i in range(len(self.adj_mas)):
-				step_features = tf.transpose(step_features, perm=[0, 2, 1])
-				step_features = tf.reshape(step_features, (-1, self.num_nodes))
+				gcn_feas += neiborhood_feas
 
-				gcn_feas = dot(self.adj_mas[i], tf.transpose(step_features), True)
-				gcn_feas = tf.transpose(gcn_feas)
-				gcn_feas = tf.reshape(gcn_feas, (-1, self.input_dim, self.num_nodes))
-				gcn_feas = tf.transpose(gcn_feas, perm=[0, 2, 1])
+			spatial_feas.append(gcn_feas)
 
-				gcn_feas = tf.reshape(gcn_feas, (-1, self.input_dim))
-				gcn_feas = dot(gcn_feas, self.vars["weights_{}".format(i)])
-				gcn_feas = tf.reshape(gcn_feas, (-1, self.num_nodes, self.input_dim))
-
-				gcn_feas = self.act(gcn_feas)
-
-				abs_feas.append(gcn_feas)
-			abs_feas = tf.add_n(abs_feas)
-			abs_feas = tf.reshape(abs_feas, (-1, 1, self.num_nodes, self.output_dim))
-			gcn_step_feas.append(abs_feas)
-		
-		if len(x) > 1:
-			outputs = tf.concat(gcn_step_feas, axis=1)
-		else:
-			outputs = tf.reshape(gcn_step_feas,
-								(-1, self.num_nodes, self.output_dim))
-		if self.bias:
-			outputs += self.vars["bias"]
-
-		return outputs, self.vars["weights_0"]
-
+		return spatial_feas

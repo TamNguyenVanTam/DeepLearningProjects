@@ -138,6 +138,8 @@ class BKNet3(Model):
 										strides=2,
 										padding="VALID"))
 
+		self.layers.append(Flatten(num_dims=int(self.num_time_steps/4) * 128))
+
 		self.layers.append(Dense(input_dim=int(self.num_time_steps/4) * 128,
 								output_dim=512,
 								dropout=0.0,
