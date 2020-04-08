@@ -58,8 +58,8 @@ def prepare_settle_dataset(speed_matrix, seq_len=10,
 
 	speed_sequences, speed_labels = [], []
 
-	for idx in range(500):
-	# for idx in range(time_length - seq_len - pred_len):
+	# for idx in range(500):
+	for idx in range(time_length - seq_len - pred_len):
 		feats = speed_matrix.iloc[idx:idx+seq_len].values
 		labels = speed_matrix.iloc[idx+seq_len:idx+seq_len+pred_len].values
 		
