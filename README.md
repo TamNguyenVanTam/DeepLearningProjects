@@ -1,2 +1,2 @@
 # form extraction
-This repository consists the source of the form extraction project
+This repository consists the source code of the form extraction project
